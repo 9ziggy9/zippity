@@ -6,6 +6,13 @@ static char line[MAX_LINE_LENGTH];
 static int SCREEN_COLS, SCREEN_ROWS;
 static int MASTER_COLS, MASTER_ROWS;
 
+void ui_exit_handler(int code, void *args) {
+  (void) code; // suppress unused warnings
+  WINDOW **ws = (WINDOW **) args;
+  if (ws[0] != NULL) delwin(ws[0]);
+  endwin();
+}
+
 static void ui_init_clr(void) {
   start_color();
   init_pair(1, COLOR_BLACK, COLOR_GREEN);

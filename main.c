@@ -19,6 +19,8 @@
 
 int main() {
   WINDOW *w_master = NULL;
+  on_exit(ui_exit_handler, (WINDOW *[]) {w_master});
+
   ui_init_scr();
   ui_init_master(&w_master);
 
