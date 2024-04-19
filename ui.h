@@ -21,7 +21,6 @@ void ui_init_scr(void);
 void ui_init_master(WINDOW **);
 void ui_clear_master(WINDOW *);
 int ui_read_in_lines(WINDOW *, FILE *);
-void ui_hl_line(WINDOW *, int);
 
 /* void ui_exit_handler(int code, void *args) {} */
 
