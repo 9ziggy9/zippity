@@ -32,16 +32,20 @@ begin_main_event: {
     int key = wgetch(w_master);
 
     switch (key) {
-    case KEY_ESC: exit(EXIT_SUCCESS);
-    case KEY_DOWN: selected_line++; break;
+    case KEY_ESC:  exit(EXIT_SUCCESS);
+    case KEY_DOWN:
+      selected_line++;
+      break;
     case KEY_UP:
-      if (selected_line <= 0) break;
+      if (selected_line <= 1)
+        goto begin_main_event;
       selected_line--;
       break;
     }
 
-    char *line_txt = ui_get_line(selected_line).txt;
-    ui_hl_line(w_master, selected_line, "%s", line_txt, 1);
+
+    char *sel_line_txt  = ui_get_line(selected_line).txt;
+    ui_hl_line(w_master, selected_line, "%s", sel_line_txt, 1);
 
     goto begin_main_event;
 }

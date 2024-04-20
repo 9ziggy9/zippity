@@ -1,4 +1,5 @@
 #include "ui.h"
+#include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -19,6 +20,7 @@ void ui_exit_handler(int code, void *args) {
 static void ui_init_clr(void) {
   start_color();
   init_pair(1, COLOR_BLACK, COLOR_WHITE);
+  init_pair(2, COLOR_WHITE, COLOR_BLACK);
 }
 
 void ui_init_scr(void) {
@@ -26,6 +28,7 @@ void ui_init_scr(void) {
   if (stdscr == NULL) PANIC(EXIT_ALLOC_FAILED);
   cbreak();
   noecho();
+  keypad(stdscr, TRUE);
   curs_set(FALSE);
 
   SCREEN_COLS = getmaxx(stdscr);
@@ -40,6 +43,8 @@ void ui_init_master(WINDOW **w) {
   *w = newwin(MASTER_ROWS, MASTER_COLS, 1, 1);
   if (*w == NULL) PANIC(EXIT_ALLOC_FAILED);
   scrollok(*w, TRUE);
+  keypad(*w, TRUE);
+  set_escdelay(0);
   box(*w, 0, 0);
 }
 
@@ -63,8 +68,6 @@ Line ui_get_line(int row) { return lines[row - 1]; }
 
 void _ui_hl_line(WINDOW *w, int row, char *fmt, char *ln, int pair) {
   int to = MASTER_COLS - (int) strlen(ln) - 4 * BORDER_WIDTH;
-  wattron (w, COLOR_PAIR(pair));
+  wattrset(w, COLOR_PAIR(pair));
   mvwprintw(w, row, 2 * BORDER_WIDTH, fmt, ln, to, "");
-  wattroff(w, COLOR_PAIR(pair));
-  wrefresh(w);
 }

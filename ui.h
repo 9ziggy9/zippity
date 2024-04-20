@@ -29,7 +29,7 @@ void _ui_hl_line(WINDOW *, int, char *, char *, int);
 void ui_init_scr(void);
 void ui_init_master(WINDOW **);
 void ui_clear_master(WINDOW *);
-int ui_read_in_lines(WINDOW *, FILE *);
+int  ui_read_in_lines(WINDOW *, FILE *);
 Line ui_get_line(int);
 
 
