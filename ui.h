@@ -6,7 +6,7 @@
 #define WINDOW_HEIGHT   20
 #define BORDER_WIDTH    1
 #define MAX_LINE_LENGTH 256
-#define MAX_LINES 500
+#define MAX_LINES       256
 
 #define KEY_ESC 27
 

@@ -24,6 +24,7 @@ static void ui_init_clr(void) {
 void ui_init_scr(void) {
   initscr();
   if (stdscr == NULL) PANIC(EXIT_ALLOC_FAILED);
+  cbreak();
   noecho();
   curs_set(FALSE);
 
@@ -47,8 +48,8 @@ int ui_read_in_lines(WINDOW *w, FILE *fp) {
   char line_txt[MAX_LINE_LENGTH];
   int row = 1;
   while (fgets(line_txt, sizeof(line_txt), fp)) {
-    line_txt[strcspn(line_txt, "\n")] = 0;
-    lines[row] = (Line) { .txt = line_txt, .row = row };
+    line_txt[strcspn(line_txt, "\n")] = '\0';
+    lines[row-1] = (Line) { .txt = line_txt, .row = row };
     mvwprintw(w, row, 2 * BORDER_WIDTH, "%s", line_txt); 
     row++;
     if (FOUND_BOTTOM(row)) return -1;
@@ -65,5 +66,5 @@ void _ui_hl_line(WINDOW *w, int row, char *fmt, char *ln, int pair) {
   wattron (w, COLOR_PAIR(pair));
   mvwprintw(w, row, 2 * BORDER_WIDTH, fmt, ln, to, "");
   wattroff(w, COLOR_PAIR(pair));
+  wrefresh(w);
 }
-

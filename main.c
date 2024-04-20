@@ -4,17 +4,6 @@
 
 #include "ui.h"
 
-
-/* [part 1]
-   Implement a small ncurses application in C which
-   reads from the a text file `test.txt` and outputs
-   that text to a window line by line.
-
-   Be sure that the output window is embedded in
-   stdscr and that it has a border. Please use
-   macro definitions for any constants, there should
-   be no magic numbers. */
-
 #define FILE_NAME "test.txt"
 
 int main() {
@@ -35,12 +24,15 @@ int main() {
   // Remember org notes on interesting read loop
   ui_read_in_lines(w_master, fp);
 
+  char *line_txt = ui_get_line(1).txt;
+  ui_hl_line(w_master, 1, "%s", line_txt, 1);
+
   int selected_line = 1;
 begin_main_event: {
     int key = wgetch(w_master);
 
     switch (key) {
-    /* case KEY_ESC: exit(EXIT_SUCCESS); */
+    case KEY_ESC: exit(EXIT_SUCCESS);
     case KEY_DOWN: selected_line++; break;
     case KEY_UP:
       if (selected_line <= 0) break;

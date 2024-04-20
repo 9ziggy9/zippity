@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -pedantic -Wconversion -Wunreachable-code -Werror
+CFLAGS=-Wall -Wextra -pedantic -Wconversion -Wunreachable-code -Werror -ggdb
 EXE=./zippity
 OBJ=./ui.o
 
