@@ -2,20 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char line[MAX_LINE_LENGTH];
+static Line lines[MAX_LINES];
 static int SCREEN_COLS, SCREEN_ROWS;
 static int MASTER_COLS, MASTER_ROWS;
 
 void ui_exit_handler(int code, void *args) {
-  (void) code; // suppress unused warnings
-  WINDOW **ws = (WINDOW **) args;
-  if (ws[0] != NULL) delwin(ws[0]);
+  struct hitlist *hl = (struct hitlist *) args;
+
+  if (hl->wm != NULL) delwin(hl->wm);
+  if (hl->fp != NULL) fclose(hl->fp);
   endwin();
+
+  printf("EXIT: %d\n", code);
 }
 
 static void ui_init_clr(void) {
   start_color();
-  init_pair(1, COLOR_BLACK, COLOR_GREEN);
+  init_pair(1, COLOR_BLACK, COLOR_WHITE);
 }
 
 void ui_init_scr(void) {
@@ -30,15 +33,6 @@ void ui_init_scr(void) {
   ui_init_clr();
 }
 
-#define HL_ROW(W, ROW, FROM, FMT, LINE, PAIR)        \
-  do {                                               \
-    int TO = MASTER_COLS - (int) strlen(LINE)        \
-           - 4 * BORDER_WIDTH;                       \
-    wattron (W, COLOR_PAIR(PAIR));                   \
-    mvwprintw(W, ROW, FROM, FMT"%*s", LINE, TO, ""); \
-    wattroff(W, COLOR_PAIR(PAIR));                   \
-  } while(0);                                        \
-
 void ui_init_master(WINDOW **w) {
   MASTER_COLS = SCREEN_COLS - 2 * BORDER_WIDTH;
   MASTER_ROWS = SCREEN_ROWS - 2 * BORDER_WIDTH;
@@ -50,11 +44,12 @@ void ui_init_master(WINDOW **w) {
 
 #define FOUND_BOTTOM(r) ((r) >= MASTER_ROWS - BORDER_WIDTH)
 int ui_read_in_lines(WINDOW *w, FILE *fp) {
+  char line_txt[MAX_LINE_LENGTH];
   int row = 1;
-  while (fgets(line, sizeof(line), fp)) {
-    line[strcspn(line, "\n")] = 0;
-    if (row % 2) mvwprintw(w, row, 2, "%s", line);
-    else         HL_ROW(w, row, 2, "%s", line, 1);
+  while (fgets(line_txt, sizeof(line_txt), fp)) {
+    line_txt[strcspn(line_txt, "\n")] = 0;
+    lines[row] = (Line) { .txt = line_txt, .row = row };
+    mvwprintw(w, row, 2 * BORDER_WIDTH, "%s", line_txt); 
     row++;
     if (FOUND_BOTTOM(row)) return -1;
   }
@@ -62,3 +57,13 @@ int ui_read_in_lines(WINDOW *w, FILE *fp) {
 }
 
 void ui_clear_master(WINDOW *w) { wclear(w); box(w, 0, 0); }
+
+Line ui_get_line(int row) { return lines[row - 1]; }
+
+void _ui_hl_line(WINDOW *w, int row, char *fmt, char *ln, int pair) {
+  int to = MASTER_COLS - (int) strlen(ln) - 4 * BORDER_WIDTH;
+  wattron (w, COLOR_PAIR(pair));
+  mvwprintw(w, row, 2 * BORDER_WIDTH, fmt, ln, to, "");
+  wattroff(w, COLOR_PAIR(pair));
+}
+
