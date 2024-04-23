@@ -4,8 +4,8 @@
 #include <string.h>
 
 static Line lines[MAX_LINES];
-static int SCREEN_COLS, SCREEN_ROWS;
-static int MASTER_COLS, MASTER_ROWS;
+int SCREEN_COLS, SCREEN_ROWS;
+int MASTER_COLS, MASTER_ROWS;
 
 void ui_exit_handler(int code, void *args) {
   struct hitlist *hl = (struct hitlist *) args;
@@ -19,8 +19,9 @@ void ui_exit_handler(int code, void *args) {
 
 static void ui_init_clr(void) {
   start_color();
-  init_pair(1, COLOR_BLACK, COLOR_WHITE);
-  init_pair(2, COLOR_WHITE, COLOR_BLACK);
+  init_pair(COLORS_D,   COLOR_WHITE, COLOR_BLACK);
+  init_pair(COLORS_HL,  COLOR_BLACK, COLOR_WHITE);
+  init_pair(COLORS_SEL, COLOR_BLACK, COLOR_GREEN);
 }
 
 void ui_init_scr(void) {
@@ -48,26 +49,46 @@ void ui_init_master(WINDOW **w) {
   box(*w, 0, 0);
 }
 
-#define FOUND_BOTTOM(r) ((r) >= MASTER_ROWS - BORDER_WIDTH)
-int ui_read_in_lines(WINDOW *w, FILE *fp) {
+int ui_read_page(WINDOW *w, FILE *fp) {
+  static long prev_page_start = 0;
+  int row = 0; // relative to screen view
   char line_txt[MAX_LINE_LENGTH];
-  int row = 1;
-  while (fgets(line_txt, sizeof(line_txt), fp)) {
+
+  if (ftell(fp) < prev_page_start) fseek(fp, prev_page_start, SEEK_SET);
+
+  while ((row + 1) < MASTER_ROWS - BORDER_WIDTH) {
+    fgets(line_txt, sizeof(line_txt), fp);
+    if (feof(fp)) {
+      rewind(fp);
+      prev_page_start = ftell(fp);
+      return row;
+    }
     line_txt[strcspn(line_txt, "\n")] = '\0';
-    lines[row-1] = (Line) { .txt = line_txt, .row = row };
-    mvwprintw(w, row, 2 * BORDER_WIDTH, "%s", line_txt); 
+    lines[row] = (Line) { .txt = line_txt, .row = row, .selected = false, };
     row++;
-    if (FOUND_BOTTOM(row)) return -1;
+    mvwprintw(w, row, 2 * BORDER_WIDTH, "%s", line_txt); 
   }
+  prev_page_start = ftell(fp);
   return row;
 }
 
 void ui_clear_master(WINDOW *w) { wclear(w); box(w, 0, 0); }
 
-Line ui_get_line(int row) { return lines[row - 1]; }
+void ui_toggle_sel(int line_no) {
+  lines[line_no].selected = !(lines[line_no].selected);
+}
 
-void _ui_hl_line(WINDOW *w, int row, char *fmt, char *ln, int pair) {
-  int to = MASTER_COLS - (int) strlen(ln) - 4 * BORDER_WIDTH;
-  wattrset(w, COLOR_PAIR(pair));
-  mvwprintw(w, row, 2 * BORDER_WIDTH, fmt, ln, to, "");
+#define UI_EOL (MASTER_COLS - 2 * BORDER_WIDTH)
+void ui_master_update(WINDOW *w, int line_no) {
+  static int last = -1;
+
+  if (last >= 0) mvwchgat(w, last, 1, UI_EOL, A_NORMAL, COLORS_D, NULL);
+  last = line_no;
+  mvwchgat(w, line_no, 1, UI_EOL, A_BOLD, COLORS_HL, NULL);
+
+  for (int l = 0; l < MAX_LINES; l++) {
+    if (lines[l].selected) mvwchgat(w, l, 1, UI_EOL, A_BOLD, COLORS_SEL, NULL);
+  }
+
+  wrefresh(w);
 }

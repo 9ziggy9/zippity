@@ -22,31 +22,29 @@ int main() {
   }
 
   // Remember org notes on interesting read loop
-  ui_read_in_lines(w_master, fp);
-
-  char *line_txt = ui_get_line(1).txt;
-  ui_hl_line(w_master, 1, "%s", line_txt, 1);
-
-  int selected_line = 1;
+  int end_page = ui_read_page(w_master, fp);
+  int line_no = 1;
 begin_main_event: {
+    ui_master_update(w_master, line_no);
     int key = wgetch(w_master);
-
     switch (key) {
-    case KEY_ESC:  exit(EXIT_SUCCESS);
+    case KEY_ESC: exit(EXIT_SUCCESS);
+    case 'm': ui_toggle_sel(line_no); break;
     case KEY_DOWN:
-      selected_line++;
+      if (line_no++ >= end_page) {
+        ui_clear_master(w_master);
+        end_page = ui_read_page(w_master, fp);
+        line_no = 1;
+      }
       break;
     case KEY_UP:
-      if (selected_line <= 1)
-        goto begin_main_event;
-      selected_line--;
+      if (line_no-- <= 1) {
+        ui_clear_master(w_master);
+        end_page = ui_read_page(w_master, fp);
+        line_no = end_page;
+      }
       break;
     }
-
-
-    char *sel_line_txt  = ui_get_line(selected_line).txt;
-    ui_hl_line(w_master, selected_line, "%s", sel_line_txt, 1);
-
     goto begin_main_event;
 }
 
