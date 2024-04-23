@@ -1,7 +1,6 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -pedantic -Wconversion -Wunreachable-code -Werror -ggdb
+CFLAGS=-Wall -Wextra -pedantic -Wconversion -Wunreachable-code -ggdb
 EXE=./zippity
-OBJ=./ui.o
 
 .PHONY: clean
 
@@ -12,16 +11,22 @@ run: clean main
 	@printf "$(RESET)"
 	@$(EXE)
 
-main: ui.o main.c
+main: pages.o ui.o main.c
 	$(call print_in_color,$(BLUE),Building main ... \n  --> )
 	@printf "$(GRAY)"
-	$(CC) $(CFLAGS) -o $(EXE) main.c ui.o -lncurses
+	$(CC) $(CFLAGS) -o $(EXE) main.c ui.o pages.o -lncurses -lpanel
 	@printf "$(RESET)"
 
 ui.o: ui.c
 	$(call print_in_color,$(YELLOW),Compiling ui.c to obj... \n  --> )
 	@printf "$(GRAY)"
-	$(CC) $(CFLAGS) -o $(OBJ) -c ui.c
+	$(CC) $(CFLAGS) -o ui.o -c ui.c
+	@printf "$(RESET)"
+
+pages.o: pages.c
+	$(call print_in_color,$(YELLOW),Compiling pages.c to obj... \n  --> )
+	@printf "$(GRAY)"
+	$(CC) $(CFLAGS) -o pages.o -c pages.c
 	@printf "$(RESET)"
 
 clean:

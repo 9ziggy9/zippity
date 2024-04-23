@@ -2,18 +2,16 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-static Line lines[MAX_LINES];
 int SCREEN_COLS, SCREEN_ROWS;
 int MASTER_COLS, MASTER_ROWS;
 
 void ui_exit_handler(int code, void *args) {
   struct hitlist *hl = (struct hitlist *) args;
-
   if (hl->wm != NULL) delwin(hl->wm);
   if (hl->fp != NULL) fclose(hl->fp);
   endwin();
-
   printf("EXIT: %d\n", code);
 }
 
@@ -49,46 +47,66 @@ void ui_init_master(WINDOW **w) {
   box(*w, 0, 0);
 }
 
-int ui_read_page(WINDOW *w, FILE *fp) {
-  static long prev_page_start = 0;
-  int row = 0; // relative to screen view
-  char line_txt[MAX_LINE_LENGTH];
+size_t ui_master_get_cols(void) {return (size_t)MASTER_COLS - 2 * BORDER_WIDTH;}
+size_t ui_master_get_rows(void) {return (size_t)MASTER_ROWS - 2 * BORDER_WIDTH;}
 
-  if (ftell(fp) < prev_page_start) fseek(fp, prev_page_start, SEEK_SET);
-
-  while ((row + 1) < MASTER_ROWS - BORDER_WIDTH) {
-    fgets(line_txt, sizeof(line_txt), fp);
-    if (feof(fp)) {
-      rewind(fp);
-      prev_page_start = ftell(fp);
-      return row;
-    }
-    line_txt[strcspn(line_txt, "\n")] = '\0';
-    lines[row] = (Line) { .txt = line_txt, .row = row, .selected = false, };
-    row++;
-    mvwprintw(w, row, 2 * BORDER_WIDTH, "%s", line_txt); 
-  }
-  prev_page_start = ftell(fp);
-  return row;
+static void ui_print_line_no(WINDOW *w, size_t abs_line_no, int rel_line_no) {
+  wattron(w, A_DIM);
+  mvwprintw(w, rel_line_no, BORDER_WIDTH, "%4zu ", abs_line_no);
+  wattroff(w, A_DIM);
 }
 
-void ui_clear_master(WINDOW *w) { wclear(w); box(w, 0, 0); }
-
-void ui_toggle_sel(int line_no) {
-  lines[line_no].selected = !(lines[line_no].selected);
+static void ui_page_no_title(WINDOW *w, size_t page_no) {
+  char page_no_title[10] = "";
+  int offset  = sprintf(page_no_title, "[ %zu ]", page_no);
+  int col_end = (int) ui_master_get_cols();
+  mvwprintw(w, 0, col_end - offset, "%s", page_no_title);
 }
 
-#define UI_EOL (MASTER_COLS - 2 * BORDER_WIDTH)
-void ui_master_update(WINDOW *w, int line_no) {
-  static int last = -1;
+/* static void mvwprintw_lag(WINDOW *w, struct timespec t, const char *fmt, ...) */
+/* { */
+/*   va_list args; */
+/*   va_start(args, fmt); */
+/*   char buffer[256]; */
+/*   vsnprintf(buffer, sizeof(buffer), fmt, args); */
+/*   va_end(args); */
+/*   curs_set(TRUE); */
+/*   for (char *p = buffer; *p != '\0'; p++) { */
+/*     waddch(w, *p); */
+/*     wrefresh(w); */
+/*     nanosleep(&t, NULL); */
+/*   } */
+/*   curs_set(FALSE); */
+/* } */
 
-  if (last >= 0) mvwchgat(w, last, 1, UI_EOL, A_NORMAL, COLORS_D, NULL);
-  last = line_no;
-  mvwchgat(w, line_no, 1, UI_EOL, A_BOLD, COLORS_HL, NULL);
-
-  for (int l = 0; l < MAX_LINES; l++) {
-    if (lines[l].selected) mvwchgat(w, l, 1, UI_EOL, A_BOLD, COLORS_SEL, NULL);
+void ui_clear_master(WINDOW *w, Page *p) {
+  for (size_t l = 0; l < p->page_end; l++) {
+    ui_print_line_no(w, p->lines[l].abs_line_no, (int) l + BORDER_WIDTH);
+    wprintw(w, "%s", p->lines[l].txt);
+    wclrtoeol(w);
+    box(w, 0, 0);
   }
+  ui_page_no_title(w, p->page_no);
+}
 
-  wrefresh(w);
+#define PAD_LINE_NO 5
+void ui_master_update(WINDOW *w, Page *p, size_t line_no) {
+  static size_t last_line_no = 0;
+  // unhighlight
+  mvwchgat(w, (int) last_line_no + BORDER_WIDTH, BORDER_WIDTH + PAD_LINE_NO,
+           (int)ui_master_get_cols() - PAD_LINE_NO, A_NORMAL, COLORS_D, NULL);
+  // highlight
+  mvwchgat(w, (int) line_no + BORDER_WIDTH, BORDER_WIDTH + PAD_LINE_NO,
+           (int)ui_master_get_cols() - PAD_LINE_NO, A_BOLD, COLORS_HL, NULL);
+  // additional attributes
+  for (size_t l = 0; l < p->page_end; l++) {
+    if (p->lines[l].selected)
+      mvwchgat(w, (int) l + BORDER_WIDTH, BORDER_WIDTH,
+               (int)ui_master_get_cols(), A_BOLD, COLORS_SEL, NULL);
+  }
+  last_line_no = line_no;
+}
+
+void ui_select_line(Page *p, size_t line_no) {
+  p->lines[line_no].selected = !p->lines[line_no].selected;
 }

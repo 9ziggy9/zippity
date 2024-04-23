@@ -1,16 +1,10 @@
 #ifndef UI_H_
 #define UI_H_
+#include "pages.h"
 #include <ncurses.h>
 
-#define WINDOW_WIDTH    80
-#define WINDOW_HEIGHT   20
-#define BORDER_WIDTH    1
-#define MAX_LINE_LENGTH 256
-#define MAX_LINES       256
-
+#define BORDER_WIDTH 1
 #define KEY_ESC 27
-
-typedef struct { char *txt; int row; bool selected; } Line;
 
 enum {
   EXIT_ALLOC_FAILED = 100,
@@ -25,17 +19,20 @@ enum {
 
 void ui_init_scr(void);
 void ui_init_master(WINDOW **);
-void ui_clear_master(WINDOW *);
-int  ui_read_page(WINDOW *, FILE *);
+void ui_clear_master(WINDOW *, Page *p);
+void ui_master_update(WINDOW *, Page *, size_t);
+
+size_t ui_master_get_cols(void);
+size_t ui_master_get_rows(void);
+
+void ui_select_line(Page *, size_t);
 
 enum {
   COLORS_D,
   COLORS_HL,
   COLORS_SEL,
 };
-void ui_master_update(WINDOW *, int);
-void ui_hl_line(WINDOW *, int, short);
-void ui_toggle_sel(int);
+
 
 struct hitlist {
   WINDOW *wm;
